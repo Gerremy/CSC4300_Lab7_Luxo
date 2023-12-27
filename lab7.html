@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<head>
+<title>Hierarchical Luxo</title>
+<script src="https://csc-vu.github.io/lib/three.js"></script>
+<script src="https://csc-vu.github.io/lib/OrbitControls.js"></script>
+
+<script>
+    var scene, camera, renderer; // Three.js rendering basics
+    var canvas; // The canvas on which the image is rendered
+
+    var mouse; // Used to navigate the scene with the mouse
+
+    var table;
+
+    // Create a camera, sitting on the positive z-axis.  The camera is not part of the scene
+    function createCamera() {
+        camera = new THREE.PerspectiveCamera(40, canvas.width/canvas.height, 0.1, 500);
+        camera.position.set(0,0,40);
+
+        camera.position.y += 5;
+
+        // TODO Step 9: Enable the camera to orbit around the world origin
+        mouse = new THREE.OrbitControls(camera, renderer.domElement);
+    }
+
+
+        // Create the lamp base with specified radius and height
+    function createBase(radius, height)
+    {
+        var base = new THREE.Object3D();
+        var baseMat = new THREE.MeshBasicMaterial( { color: "gray" } );
+
+        // TODO Step 5: Create the mesh and position it relative to base, then add it to base
+
+        var baseGeom = new THREE.SphereGeometry(radius, 32, 32, 0, 2*Math.PI, 0, Math.PI/2);
+        var baseMesh = new THREE.Mesh(baseGeom, baseMat);
+        baseMesh.scale.y = height/radius;
+        baseMesh.position.y = -height;
+        base.add(baseMesh);
+
+        
+        //CircleGeometry(radius, segments)
+        var capGeom = new THREE.CircleGeometry(radius, 32);
+        var capMesh = new THREE.Mesh(capGeom, baseMat);
+        capMesh.rotation.x = Math.PI/2;
+        baseMesh.add(capMesh);
+        
+
+        return base; 
+    }
+
+    // Create a lamp arm with specified radius and height
+    function createArm(radius, height)
+    {
+        var arm = new THREE.Object3D();
+        var armMat = new THREE.MeshBasicMaterial( { color: "skyblue" } );
+
+        // TODO Step 6: Create the mesh and position it relative to arm, then add it to arm
+        var armGeom = new THREE.CylinderGeometry(radius, radius, height);
+        var armMesh = new THREE.Mesh(armGeom, armMat);
+
+        armMesh.position.y = height/2;
+
+        arm.add(armMesh);
+
+        return arm;
+    }
+
+    // Create the lamp shade with specified radius and height
+    function createShade(radius, height)
+    {
+        var shade = new THREE.Object3D();
+        var shadeMat = new THREE.MeshBasicMaterial( { color: "orange", side: THREE.DoubleSide } ); 
+
+        // TODO Step 7: Create the mesh and position it relative to shade, then add it to shade
+
+        var shadeGeom = new THREE.ConeGeometry(radius, height, 16, 1, true);
+
+        var shadeMesh = new THREE.Mesh(shadeGeom, shadeMat);
+
+        shadeMesh.rotation.x = Math.PI;
+
+        shadeMesh.position.y = height/2
+
+        shade.add(shadeMesh);
+
+        return shade;
+    }
+
+    function createTable() {
+        // arguments are width along the x-axis, then width along y-axis
+        var geometry = new THREE.PlaneGeometry( 20, 20 );
+
+        var material = new THREE.MeshBasicMaterial({color: 0xCCAAAA, side: THREE.DoubleSide});
+        var plane = new THREE.Mesh( geometry, material );
+
+        //scene.add(plane);
+
+        plane.rotation.set(Math.PI/2, 0, 0);
+
+        //plane.position.y = 1.2
+
+        return plane;
+    }
+
+    function createLuxo()
+    {
+        var baseRadius = 3.5;
+        var baseHeight = 1.2;
+        var armRadius = 0.5;
+        var armHeight = 5;
+        var shadeRadius = 2.5;
+        var shadeHeight = 4; 
+
+        // Build the lamp parts
+        var base = createBase(baseRadius, baseHeight);
+        var lowerArm = createArm(armRadius, armHeight);
+        var upperArm = createArm(armRadius, armHeight);
+        var shade = createShade(shadeRadius, shadeHeight);
+
+        // Build the lamp hierarchal structure 
+        var lamp = new THREE.Object3D();
+
+        // TODO Step 5: Add base as a child of lamp, then reposition base
+        lamp.add(base);
+
+        // TODO Step 6: Add lowerArm (to lamp) and upperArm (to lowerArm), then reposition
+        lamp.add(lowerArm);
+
+        lowerArm.add(upperArm);
+
+        //position children relative to parents
+
+        base.position.y = baseHeight;
+
+        lowerArm.position.y = baseHeight;
+
+        upperArm.position.y = armHeight;
+
+        // TODO Step 7: Add shade as child of upperArm, then reposition
+
+        upperArm.add(shade);
+
+        shade.position.y = armHeight;
+
+        return lamp;
+    }
+
+    // Create the scene. This function is called once, as soon as the page loads.
+    // The renderer has already been created before this function is called.
+    function createScene() {
+        
+        renderer.setClearColor(0); // Set background color (0, or 0x000000, is black)
+        scene = new THREE.Scene(); // Create a new scene which we can add objects to
+
+        // add world coordinate system for guidance
+        var axesHelper = new THREE.AxesHelper( 8 );
+        scene.add( axesHelper );
+        
+        // create Luxo and add it to the scene
+        luxo = createLuxo(); // luxo is global
+        scene.add(luxo);        
+
+        // retrieve Luxo parts (in global variables)
+        luxoBase = luxo.children[0];
+        luxoLowerArm = luxo.children[1];
+        luxoUpperArm = luxoLowerArm.children[1];
+        luxoShade = luxoUpperArm.children[1];
+
+        // TODO Step 6: rotate luxoLowerArm and luxoUpperArm (check articulation point)
+
+        luxoLowerArm.rotation.z = Math.PI/6;
+
+        luxoUpperArm.rotation.z = Math.PI/6;
+
+        // TODO Step 7: rotate luxoShade (check articulation point)
+
+        luxoShade.rotation.z = Math.PI/6;
+
+        // TODO Step 8: Add table for the lamp to sit on (create table in a separate function)
+
+        table = createTable();
+
+        scene.add(table);
+    }
+
+    
+    function update() {
+        mouse.update();
+    }
+
+    // Render the scene. This is called for each frame of the animation.
+    function render() {
+
+        renderer.render(scene, camera); // render the scene
+
+        // code for things to change here
+
+        update()
+
+        requestAnimationFrame(render); // loop
+    }
+
+    //----------------------------------------------------------------------------------
+
+    // The main() function is called by the onload event when the document has loaded.
+    function main() {
+        try {
+            canvas = document.getElementById("glcanvas");
+            renderer = new THREE.WebGLRenderer( { canvas: canvas, antialias: true} );
+        }
+        catch (e) {
+            document.getElementById("canvas-holder").innerHTML = "<h3><b>WebGL is not available.</b><h3>";
+            return;
+        }
+    
+        // create camera
+        createCamera();
+        
+        // create scene 
+        createScene();
+
+        // render scene
+        render();
+    }
+
+</script>
+
+</head>
+<body onload="main()">
+<div id="canvas-holder">
+    <canvas id="glcanvas" width="600" height="400"></canvas>
+</div>
+</body>
+</html>
